@@ -1,28 +1,117 @@
 ---
-title: "regression code"
+title: "Regression code"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, cache=TRUE, message=FALSE, warning=FALSE,
+                      fig.width=7, fig.height=3, fig.align = "center")
+options(digits=3)
+
+library(e1071)
+
 ```
 
-## R Markdown
+```{r}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+war_Data <- readr::read_csv("weather.csv")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+#head(war_Data)
 
-```{r cars}
-summary(cars)
+#using scatter plot to visualize relationship between minTemp and maxTemp
+
+scatter.smooth(x=war_Data$MinTemp, y=war_Data$MaxTemp, main="MinTemp ~ MaxTemp")
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+```{r}
+#checking for outliers using a box plot
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+par(mfrow=c(1, 2))  # divide graph area in 2 columns
+
+boxplot(war_Data$MinTemp, main="MinTemp", sub=paste("Outlier rows: ", boxplot.stats(cars$speed)$out))  # box plot for 'MinTemp'
+
+boxplot(war_Data$MaxTemp, main="MaxTemp", sub=paste("Outlier rows: ", boxplot.stats(cars$dist)$out))  # box plot for 'MaxTemp'
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+
+#checking if response variable is close to normal using density plot
+
+par(mfrow=c(1, 2))  # divide graph area in 2 columns
+
+plot(density(war_Data$MinTemp), main="Density Plot: MinTemp", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(war_Data$MinTemp), 2)))  # density plot for 'MinTemp'
+
+polygon(density(war_Data$MinTemp), col="red")
+
+plot(density(war_Data$MaxTemp), main="Density Plot: MaxTemp", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(war_Data$MaxTemp), 2)))  # density plot for 'MaxTemp'
+
+polygon(density(war_Data$MaxTemp), col="red")
+
+```
+
+
+```{r}
+#correlation
+
+cor(war_Data$MinTemp, war_Data$MaxTemp)
+
+```
+We see that there's a strong positive relationship between MinTemp and MaxTemp (close to 1).
+
+```{r}
+
+#linear regression model
+
+linearModel <- lm(MaxTemp ~ MinTemp, data=war_Data)
+print(linearModel)
+
+#model Summary
+modelSummary<-summary(linearModel)
+
+#model coeffecients
+modelCoefficients <- modelSummary$coefficients
+
+#beta estimate
+beta_Estimate <- modelCoefficients["MinTemp", "Estimate"]
+
+#standard error 
+std_Error <- modelCoefficients["MinTemp", "Std. Error"]
+
+#t statistics
+t_Value <- beta_Estimate/std_Error
+
+#p value
+p_Value <- 2*pt(-abs(t_Value), df = nrow(war_Data)-ncol(war_Data))
+
+
+#f stat
+f_Stat <- linearModel$fstatistic[1]
+
+#parameters for model p-val
+f <- summary(linearModel)$f_Stat 
+
+
+#p_Value_Model <- pf(f[1], f[2], f[3], lower=FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
