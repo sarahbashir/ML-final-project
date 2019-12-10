@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE, cache=TRUE, message=FALSE, warning=FALSE,
 options(digits=3)
 
 library(e1071)
+library(tidyverse)
 
 ```
 
@@ -102,7 +103,30 @@ f <- summary(linearModel)$f_Stat
 
 Poisson Regression: 
 
-Looking at relationship between number of bicyclists who used different bike lanes on the same day. 
+Looking at relationship between temperature and number of bikes.
+```{r}
+
+bikes_Data <- readr::read_csv("bikes.csv")
+
+bikes_Data<-as.data.frame(bikes_Data)
+
+head(bikes_Data)
+
+
+```
+Will use mean temperature (high - low/2) to predict volume of bikes per dat. First find class of each variable and if there are any missing variables. Then will plot to see the relationship between number of bikes and mean temperature.
+
+```{r}
+print("Is there any missing value?")
+sum(is.na(bikes_Data[,c('High Temp (°F)', 'Low Temp (°F)','Total')]))
+print("Are these variable numerics?")
+is.numeric(bikes_Data[,'High Temp (°F)'])
+is.numeric(bikes_Data[,'Low Temp (°F)'])
+is.numeric(bikes_Data[,'Total'])
+print("Are integers?")
+all.equal(bikes_Data[,'Total'], as.integer(bikes_Data[,'Total'])) == T
+
+```
 
 
 
