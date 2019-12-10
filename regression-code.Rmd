@@ -11,6 +11,10 @@ options(digits=3)
 library(e1071)
 library(tidyverse)
 library(DAAG)
+library(caret)
+library(ggplot2)
+library(sandwich)
+library(msm)
 
 ```
 
@@ -133,18 +137,13 @@ head(actual_pred)
 
 DMwR::regr.eval(actual_pred$actual,actual_pred$predict)
 
-#cross validation
-#need to check 2 things from k fold predictions
-#if each of k-fold model's prediction accuracy doesn't very too much for any one sample
-#and if lines of best fit fromt he k-folds don't cary too much with respect to the slope and level
-#(line sshould be parallel and as close to each other as possible)
+#prediction error rate
+#RMSE(prediction, testData$MaxTemp/mean(testData$MaxTemp))
 
-war_Data<-as.data.frame(war_Data)
-
-crossv <- suppressWarnings(CVlm(df=war_Data, form.lm=MaxTemp ~ MinTemp, m = 5, dots = FALSE, seed = 4, legend.pos = "topleft", printit = FALSE, main = "Small symbols are predicted and big are actual results"));
-
-attr(crossv, 'ms') #mean squared error
-
+train.control <- trainControl(method = "cv", number = 10)
+#train the model
+model <- train(MaxTemp ~ MinTemp, data = war_Data, method = "lm", trControl = train.control)
+print(model)
 
 ```
 
@@ -162,7 +161,7 @@ head(bikes_Data)
 
 
 ```
-Will use mean temperature (high - low/2) to predict volume of bikes per dat. First find class of each variable and if there are any missing variables. Then will plot to see the relationship between number of bikes and mean temperature.
+Will use mean temperature (high - low/2) to predict volume of bikes per day. First find class of each variable and if there are any missing variables. Then will plot to see the relationship between number of bikes and mean temperature.
 
 ```{r}
 print("Is there any missing value?")
@@ -190,28 +189,57 @@ ggplot(bikes_Data, aes(x = Mean_Temperature, y = Total)) +
 ```
 ```{r}
 
-bikesModel <- glm(bikes_Data$Total ~ bikes_Data$Mean_Temperature)
+bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, poisson)
+
+cov.model <- vcovHC(bikesModel, type = "HC0")
+std.error <- sqrt(diag(cov.model))
+r.est <- cbind(Estimate = coef(bikesModel), "Robust SE" = std.error, "Pr(>|z|)" = 2 * pnorm(abs(coef(bikesModel)/std.error), lower.tail = FALSE),
+LL = coef(bikesModel) - 1.96 * std.error, 
+UL = coef(bikesModel) + 1.96 * std.error)
+
+r.est
+
+pchisq(bikesModel$deviance, df=bikesModel$df.residual, lower.tail = FALSE)
 
 summary(bikesModel)
 
 ```
+Median is 0, deviance residuals are normally distributed. Coeffeicient for Total is close to 0. Residual deviance provides a goodness of fit test for the overall model. Residual deviance is the difference beween the deviance of the current model and the max deviance of the ideal model where the predicted values are the same as those observed. If the residual difference is small enough, the goodness of fit test will not be significant, indicating that the model fits the data. We conclude that the model fits well because the goodness of fit chi-squared test is not statistically significant. If it was, it would indicate that the data did not fit the model well.
 
-The positive coefficient for Mean_Temperature means that as Mean Temeprature increases, the total number of bikes also increases.
+The positive coefficient for Mean_Temperature means that as Mean Temeperature increases, the total number of bikes also increases.
 
 This coeffecient is highly significant (p < 2e-16).
 
-Residual deviance is higher than the degrees of freedom, which means we have over dispersion. Means that there is extra variance not accounted for by the model.
+Residual deviance is slightly higher than the degrees of freedom, which means we have slight over dispersion. Means that there is extra variance not accounted for by the model.
 
-Aim to refit the model using quasi Poisson errors. Over dispersion is an issue if the residual variance is larger than the conditional mean. The quasi-poisson model will fit an extra dispersion paramater to account for the extra variance.
+Aim to refit the model using quasi Poisson errors (see if this will help). Over dispersion is an issue if the residual variance is larger than the conditional mean. The quasi-poisson model will fit an extra dispersion paramater to account for the extra variance.
 
 ```{r}
 
-quasi_Model <- bikesModel <- glm( bikes_Data$Total ~ bikes_Data$Mean_Temperature, quasipoisson)
+quasi_Model <- bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, quasipoisson)
+
+pchisq(quasi_Model$deviance, df=quasi_Model$df.residual, lower.tail = FALSE)
+
+
 summary(quasi_Model)
 
 
 ```
-Residual deviance has decreased. Dispersion paramater is much lower. This paramater tells us bow many times larger the variance is htan the mean.
+We see the dispersion paramater is slightly higher. This paramater tells us how many times larger the variance is than the mean. In this case, the difference between the residual and null deviance is the same as the original model and the dispersion paramater is higher, so the original Poisson model was better.
+
+```{r}
+
+inTrain <- caret::createDataPartition(y=bikes_Data$Total, p=.8, list=FALSE)
+BR.train <- bikes_Data[inTrain,]
+BR.dev <- bikes_Data[-inTrain,]
+
+
+pchisq(bikesModel$deviance, df=bikesModel$df.residual, lower.tail = FALSE)
+
+
+
+```
+P-value of 0.193 suggests that a residual deviance as large or larger than what we observed under the model in bikesModel is highly likely. Suggests that the model is of adequate fit, since the chi-squared test was not statistically significant.
 
 Looking at Precipitation: 
 
