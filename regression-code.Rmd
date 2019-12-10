@@ -12,6 +12,8 @@ library(e1071)
 
 ```
 
+Logistic Refression:
+
 ```{r}
 
 war_Data <- readr::read_csv("weather.csv")
@@ -97,6 +99,10 @@ f <- summary(linearModel)$f_Stat
 #p_Value_Model <- pf(f[1], f[2], f[3], lower=FALSE)
 
 ```
+
+Poisson Regression: 
+
+Looking at relationship between number of bicyclists who used different bike lanes on the same day. 
 
 
 
