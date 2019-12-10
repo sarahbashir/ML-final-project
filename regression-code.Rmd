@@ -10,6 +10,7 @@ options(digits=3)
 
 library(e1071)
 library(tidyverse)
+library(DAAG)
 
 ```
 
@@ -100,6 +101,53 @@ f <- summary(linearModel)$f_Stat
 #p_Value_Model <- pf(f[1], f[2], f[3], lower=FALSE)
 
 ```
+
+```{r}
+
+#create training and test data 
+set.seed(47)
+trainingIndex <- sample(1:nrow(war_Data), 0.8*nrow(war_Data)) #row indeces for training
+trainData <- war_Data[trainingIndex, ] #training data
+testData <- war_Data[-trainingIndex, ] #test data
+
+#build model on training data
+linMod <- lm(MaxTemp ~ MinTemp, data=war_Data)
+prediction <- predict(linMod, testData) #predict temp
+
+summary(linMod)
+AIC (linMod)
+
+```
+We see model and predictor p value are less than 0.05 so the model is statistically significant. R squared and adjusted R squared are comparitive to the orginial model built on the full data.
+
+Now calculate prediction accuracy and error rates:
+
+Look at correlation between actual and predicted values. 
+
+```{r}
+
+actual_pred <- data.frame(cbind(actual=testData$MaxTemp, predict=prediction)) #make precited and actual data frame
+correlation_Acc <- cor(actual_pred)
+correlation_Acc #87.9%
+head(actual_pred)
+
+DMwR::regr.eval(actual_pred$actual,actual_pred$predict)
+
+#cross validation
+#need to check 2 things from k fold predictions
+#if each of k-fold model's prediction accuracy doesn't very too much for any one sample
+#and if lines of best fit fromt he k-folds don't cary too much with respect to the slope and level
+#(line sshould be parallel and as close to each other as possible)
+
+war_Data<-as.data.frame(war_Data)
+
+crossv <- suppressWarnings(CVlm(df=war_Data, form.lm=MaxTemp ~ MinTemp, m = 5, dots = FALSE, seed = 4, legend.pos = "topleft", printit = FALSE, main = "Small symbols are predicted and big are actual results"));
+
+attr(crossv, 'ms') #mean squared error
+
+
+```
+
 
 Poisson Regression: 
 
