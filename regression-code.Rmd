@@ -140,6 +140,31 @@ ggplot(bikes_Data, aes(x = Mean_Temperature, y = Total)) +
 
 
 ```
+```{r}
+
+bikesModel <- glm(bikes_Data$Total ~ bikes_Data$Mean_Temperature)
+
+summary(bikesModel)
+
+```
+
+The positive coefficient for Mean_Temperature means that as Mean Temeprature increases, the total number of bikes also increases.
+
+This coeffecient is highly significant (p < 2e-16).
+
+Residual deviance is higher than the degrees of freedom, which means we have over dispersion. Means that there is extra variance not accounted for by the model.
+
+Aim to refit the model using quasi Poisson errors. Over dispersion is an issue if the residual variance is larger than the conditional mean. The quasi-poisson model will fit an extra dispersion paramater to account for the extra variance.
+
+```{r}
+
+quasi_Model <- bikesModel <- glm( bikes_Data$Total ~ bikes_Data$Mean_Temperature, quasipoisson)
+summary(quasi_Model)
+
+
+```
+Residual deviance has decreased. Dispersion paramater is much lower. This paramater tells us bow many times larger the variance is htan the mean.
+
 Looking at Precipitation: 
 
 ```{r}
@@ -154,6 +179,7 @@ ggplot(bikes_Data, aes(x = Precipitation, y = Total)) +
 
 ```
 We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes.
+
 
 
 
