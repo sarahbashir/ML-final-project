@@ -127,14 +127,33 @@ print("Are integers?")
 all.equal(bikes_Data[,'Total'], as.integer(bikes_Data[,'Total'])) == T
 
 ```
+```{r}
+
+#create "Mean temperature".
+bikes_Data$Mean_Temperature<-(bikes_Data[,'High Temp (°F)']+bikes_Data[,'Low Temp (°F)'])/2
+#Poisson plot
+ggplot(bikes_Data, aes(x = Mean_Temperature, y = Total)) +
+    geom_point() + 
+    geom_smooth(method = "glm", #plot poisson regression
+    method.args = list(family = "poisson"))
 
 
 
+```
+Looking at Precipitation: 
+
+```{r}
+
+#Look at precipatation
+bikes_Data[,"Precipitation"]<-as.numeric(bikes_Data[,"Precipitation"]) #get rid of n/a's in dataset
+ggplot(bikes_Data, aes(x = Precipitation, y = Total)) + 
+    geom_point() + 
+    geom_smooth(method = "glm", #plot regression
+    method.args = list(family = "poisson")) 
 
 
-
-
-
+```
+We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes.
 
 
 
