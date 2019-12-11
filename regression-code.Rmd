@@ -24,13 +24,12 @@ Logistic Refression:
 
 war_Data <- readr::read_csv("weather.csv")
 
-#head(war_Data)
 
 #using scatter plot to visualize relationship between minTemp and maxTemp
 
 scatter.smooth(x=war_Data$MinTemp, y=war_Data$MaxTemp, main="MinTemp ~ MaxTemp", col = '#CCCCCC')
 
-#ggplot2.scatterplot(data=war_data, xName = 'war_Data$MinTemp', yName = 'war_Data$MaxTemp', addRegLine=TRUE, regLineColor = ' blue', smoothingMethod = 'loess')
+
 
 ```
 
@@ -73,43 +72,6 @@ We see that there's a strong positive relationship between MinTemp and MaxTemp (
 
 ```{r}
 
-#linear regression model
-
-linearModel <- lm(MaxTemp ~ MinTemp, data=war_Data)
-print(linearModel)
-
-#model Summary
-modelSummary<-summary(linearModel)
-
-#model coeffecients
-modelCoefficients <- modelSummary$coefficients
-
-#beta estimate
-beta_Estimate <- modelCoefficients["MinTemp", "Estimate"]
-
-#standard error 
-std_Error <- modelCoefficients["MinTemp", "Std. Error"]
-
-#t statistics
-t_Value <- beta_Estimate/std_Error
-
-#p value
-p_Value <- 2*pt(-abs(t_Value), df = nrow(war_Data)-ncol(war_Data))
-
-
-#f stat
-f_Stat <- linearModel$fstatistic[1]
-
-#parameters for model p-val
-f <- summary(linearModel)$f_Stat 
-
-
-#p_Value_Model <- pf(f[1], f[2], f[3], lower=FALSE)
-
-```
-
-```{r}
-
 #create training and test data 
 set.seed(47)
 trainingIndex <- sample(1:nrow(war_Data), 0.8*nrow(war_Data)) #row indices for training
@@ -122,7 +84,7 @@ prediction <- predict(linMod, testData) #predict temp
 
 actual<- testData$MaxTemp
 
-#out of sample RMSE
+#test data RMSE
 sqrt(mean(prediction-actual)^2)
 
 #fit a model to the training data set
@@ -131,7 +93,7 @@ linMod2 <- lm(MaxTemp ~ MinTemp, data=trainData)
 #predict in-sample
 prediction2 <- predict(linMod2, trainData)
 
-#get RMSE
+#get RMSE for train data
 actual2 <- trainData$MaxTemp
 sqrt(mean(prediction2-actual2)^2)
 
@@ -149,11 +111,10 @@ Look at correlation between actual and predicted values.
 
 actual_pred <- data.frame(cbind(actual=testData$MaxTemp, predict=prediction)) #make precited and actual data frame
 correlation_Acc <- cor(actual_pred)
-correlation_Acc #87.9%
-head(actual_pred)
+#strong positive relationship between actual and predicted values
+correlation_Acc 
 
 DMwR::regr.eval(actual_pred$actual,actual_pred$predict)
-
 
 
 
@@ -169,20 +130,19 @@ bikes_Data <- readr::read_csv("bikes.csv")
 
 bikes_Data<-as.data.frame(bikes_Data)
 
-head(bikes_Data)
 
 
 ```
 Will use mean temperature (high - low/2) to predict volume of bikes per day. First find class of each variable and if there are any missing variables. Then will plot to see the relationship between number of bikes and mean temperature.
 
 ```{r}
-print("Is there any missing value?")
+print("Missing values?")
 sum(is.na(bikes_Data[,c('High Temp (°F)', 'Low Temp (°F)','Total')]))
-print("Are these variable numerics?")
+print("Numeric variables?")
 is.numeric(bikes_Data[,'High Temp (°F)'])
 is.numeric(bikes_Data[,'Low Temp (°F)'])
 is.numeric(bikes_Data[,'Total'])
-print("Are integers?")
+print("Integers?")
 all.equal(bikes_Data[,'Total'], as.integer(bikes_Data[,'Total'])) == T
 
 ```
@@ -199,7 +159,7 @@ ggplot(bikes_Data, aes(x = Mean_Temperature, y = Total)) +
 
 
 ```
-```{r}
+```{r eval = FALSE}
 
 bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, poisson)
 
@@ -210,8 +170,6 @@ LL = coef(bikesModel) - 1.96 * std.error,
 UL = coef(bikesModel) + 1.96 * std.error)
 
 r.est
-
-pchisq(bikesModel$deviance, df=bikesModel$df.residual, lower.tail = FALSE)
 
 summary(bikesModel)
 
@@ -231,7 +189,6 @@ Aim to refit the model using quasi Poisson errors (see if this will help). Over 
 quasi_Model <- bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, quasipoisson)
 
 pchisq(quasi_Model$deviance, df=quasi_Model$df.residual, lower.tail = FALSE)
-
 
 summary(quasi_Model)
 
@@ -259,6 +216,7 @@ predictionProbs <- data.frame(prob.poisson = poisPred)
 
 mean(predictionProbs[,1])
 
+
 #out of sample performance (on test data)
 
 
@@ -271,23 +229,20 @@ predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
 mean(predictionProbsOOS[,1])
 
 
-
-
-
-
-
-pchisq(bikesModel$deviance, df=bikesModel$df.residual, lower.tail = FALSE)
+pchisq(poisModOOS$deviance, df=poisModOOS$df.residual, lower.tail = FALSE)
 
 
 
 
 
 ```
-P-value of 0.193 suggests that a residual deviance as large or larger than what we observed under the model in bikesModel is highly likely. Suggests that the model is of adequate fit, since the chi-squared test was not statistically significant.
+P-value of 0.0899 suggests that a residual deviance as large or larger than what we observed under the model in poisson model is highly likely. Suggests that the model is of adequate fit, since the chi-squared test was not statistically significant.
 
 Looking at Precipitation: 
 
 ```{r}
+
+set.seed(33)
 
 #Look at precipatation
 bikes_Data[,"Precipitation"]<-as.numeric(bikes_Data[,"Precipitation"]) #get rid of n/a's in dataset
@@ -295,6 +250,28 @@ ggplot(bikes_Data, aes(x = Precipitation, y = Total)) +
     geom_point() + 
     geom_smooth(method = "glm", #plot regression
     method.args = list(family = "poisson")) 
+
+#build model on training data
+#in sample accuracy
+#need to convert log odds to a probability
+poisMod <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
+poisPrediction <- predict(poisMod, BR.train) #predict temp
+poisPred <- gtools::inv.logit(poisPrediction)
+
+predictionProbs <- data.frame(prob.poisson = poisPred)
+
+mean(predictionProbs[,1])
+
+#out of sample performance (on test data)
+
+poisModOOS <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
+poisPredictionOOS <- predict(poisModOOS, BR.test) #predict temp
+poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
+
+predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
+
+mean(predictionProbsOOS[,1])
+
 
 
 ```
