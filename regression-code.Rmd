@@ -28,7 +28,9 @@ war_Data <- readr::read_csv("weather.csv")
 
 #using scatter plot to visualize relationship between minTemp and maxTemp
 
-scatter.smooth(x=war_Data$MinTemp, y=war_Data$MaxTemp, main="MinTemp ~ MaxTemp")
+scatter.smooth(x=war_Data$MinTemp, y=war_Data$MaxTemp, main="MinTemp ~ MaxTemp", col = '#CCCCCC')
+
+#ggplot2.scatterplot(data=war_data, xName = 'war_Data$MinTemp', yName = 'war_Data$MaxTemp', addRegLine=TRUE, regLineColor = ' blue', smoothingMethod = 'loess')
 
 ```
 
@@ -110,16 +112,31 @@ f <- summary(linearModel)$f_Stat
 
 #create training and test data 
 set.seed(47)
-trainingIndex <- sample(1:nrow(war_Data), 0.8*nrow(war_Data)) #row indeces for training
+trainingIndex <- sample(1:nrow(war_Data), 0.8*nrow(war_Data)) #row indices for training
 trainData <- war_Data[trainingIndex, ] #training data
 testData <- war_Data[-trainingIndex, ] #test data
 
 #build model on training data
-linMod <- lm(MaxTemp ~ MinTemp, data=war_Data)
+linMod <- lm(MaxTemp ~ MinTemp, data=trainData)
 prediction <- predict(linMod, testData) #predict temp
 
+actual<- testData$MaxTemp
+
+#out of sample RMSE
+sqrt(mean(prediction-actual)^2)
+
+#fit a model to the full data set
+linMod2 <- lm(MaxTemp ~ MinTemp, data=war_Data)
+
+#predict in-sample
+prediction2 <- predict(linMod2, war_Data)
+
+#get RMSE
+actual2 <- war_Data$MaxTemp
+sqrt(mean(prediction2-actual2)^2)
+
+
 summary(linMod)
-AIC (linMod)
 
 ```
 We see model and predictor p value are less than 0.05 so the model is statistically significant. R squared and adjusted R squared are comparitive to the orginial model built on the full data.
@@ -137,13 +154,8 @@ head(actual_pred)
 
 DMwR::regr.eval(actual_pred$actual,actual_pred$predict)
 
-#prediction error rate
-#RMSE(prediction, testData$MaxTemp/mean(testData$MaxTemp))
 
-train.control <- trainControl(method = "cv", number = 10)
-#train the model
-model <- train(MaxTemp ~ MinTemp, data = war_Data, method = "lm", trControl = train.control)
-print(model)
+
 
 ```
 
@@ -229,12 +241,44 @@ We see the dispersion paramater is slightly higher. This paramater tells us how 
 
 ```{r}
 
+set.seed(35)
+
 inTrain <- caret::createDataPartition(y=bikes_Data$Total, p=.8, list=FALSE)
 BR.train <- bikes_Data[inTrain,]
-BR.dev <- bikes_Data[-inTrain,]
+BR.test <- bikes_Data[-inTrain,]
+
+
+#build model on training data
+#in sample accuracy
+#need to convert log odds to a probability
+poisMod <- glm(Mean_Temperature ~ Total, data = bikes_Data, family = poisson)
+poisPrediction <- predict(poisMod, bikes_Data) #predict temp
+poisPred <- gtools::inv.logit(poisPrediction)
+
+predictionProbs <- data.frame(prob.poisson = poisPred)
+
+mean(predictionProbs[,1])
+
+#out of sample performance (on test data)
+
+
+poisModOOS <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
+poisPredictionOOS <- predict(poisModOOS, BR.test) #predict temp
+poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
+
+predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
+
+mean(predictionProbsOOS[,1])
+
+
+
+
+
 
 
 pchisq(bikesModel$deviance, df=bikesModel$df.residual, lower.tail = FALSE)
+
+
 
 
 
