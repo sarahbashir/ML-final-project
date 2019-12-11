@@ -125,14 +125,14 @@ actual<- testData$MaxTemp
 #out of sample RMSE
 sqrt(mean(prediction-actual)^2)
 
-#fit a model to the full data set
-linMod2 <- lm(MaxTemp ~ MinTemp, data=war_Data)
+#fit a model to the training data set
+linMod2 <- lm(MaxTemp ~ MinTemp, data=trainData)
 
 #predict in-sample
-prediction2 <- predict(linMod2, war_Data)
+prediction2 <- predict(linMod2, trainData)
 
 #get RMSE
-actual2 <- war_Data$MaxTemp
+actual2 <- trainData$MaxTemp
 sqrt(mean(prediction2-actual2)^2)
 
 
@@ -251,8 +251,8 @@ BR.test <- bikes_Data[-inTrain,]
 #build model on training data
 #in sample accuracy
 #need to convert log odds to a probability
-poisMod <- glm(Mean_Temperature ~ Total, data = bikes_Data, family = poisson)
-poisPrediction <- predict(poisMod, bikes_Data) #predict temp
+poisMod <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
+poisPrediction <- predict(poisMod, BR.train) #predict temp
 poisPred <- gtools::inv.logit(poisPrediction)
 
 predictionProbs <- data.frame(prob.poisson = poisPred)
