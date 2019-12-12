@@ -101,7 +101,7 @@ sqrt(mean(prediction2-actual2)^2)
 summary(linMod)
 
 ```
-We see model and predictor p value are less than 0.05 so the model is statistically significant. R squared and adjusted R squared are comparitive to the orginial model built on the full data.
+We see model and predictor p value are less than 0.05 so the model is statistically significant. 
 
 Now calculate prediction accuracy and error rates:
 
@@ -129,7 +129,6 @@ Looking at relationship between temperature and number of bikes.
 bikes_Data <- readr::read_csv("bikes.csv")
 
 bikes_Data<-as.data.frame(bikes_Data)
-
 
 
 ```
@@ -209,7 +208,7 @@ BR.test <- bikes_Data[-inTrain,]
 #in sample accuracy
 #need to convert log odds to a probability
 poisMod <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
-poisPrediction <- predict(poisMod, BR.train) #predict temp
+poisPrediction <- predict(poisMod, BR.train) #predict total number of bikes
 poisPred <- gtools::inv.logit(poisPrediction)
 
 predictionProbs <- data.frame(prob.poisson = poisPred)
@@ -221,7 +220,7 @@ mean(predictionProbs[,1])
 
 
 poisModOOS <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
-poisPredictionOOS <- predict(poisModOOS, BR.test) #predict temp
+poisPredictionOOS <- predict(poisModOOS, BR.test) #predict total number of bikes
 poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
 
 predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
@@ -255,7 +254,7 @@ ggplot(bikes_Data, aes(x = Precipitation, y = Total)) +
 #in sample accuracy
 #need to convert log odds to a probability
 poisMod <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
-poisPrediction <- predict(poisMod, BR.train) #predict temp
+poisPrediction <- predict(poisMod, BR.train) #predict total number of bikes
 poisPred <- gtools::inv.logit(poisPrediction)
 
 predictionProbs <- data.frame(prob.poisson = poisPred)
@@ -265,7 +264,7 @@ mean(predictionProbs[,1])
 #out of sample performance (on test data)
 
 poisModOOS <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
-poisPredictionOOS <- predict(poisModOOS, BR.test) #predict temp
+poisPredictionOOS <- predict(poisModOOS, BR.test) #predict total number of bikes
 poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
 
 predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
@@ -275,7 +274,7 @@ mean(predictionProbsOOS[,1])
 
 
 ```
-We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes.
+We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes (not a very good model, however).
 
 
 
