@@ -1,13 +1,19 @@
 ---
-title: "Regression code"
-output: html_document
+title: "Regression Analysis"
+author: "Sarah Bashir"
+output:
+  word_document: default
+  pdf_document: default
 ---
+
+### PROJECT
+
+This project looks at multiple data sets taken from kaggle and compares the accuracies of different regression models. 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, cache=TRUE, message=FALSE, warning=FALSE,
                       fig.width=7, fig.height=3, fig.align = "center")
 options(digits=3)
-
 library(e1071)
 library(tidyverse)
 library(DAAG)
@@ -15,91 +21,60 @@ library(caret)
 library(ggplot2)
 library(sandwich)
 library(msm)
-
 ```
 
-Logistic Refression:
+Logistic Regression:
 
 ```{r}
-
 war_Data <- readr::read_csv("weather.csv")
-
-
 #using scatter plot to visualize relationship between minTemp and maxTemp
-
 scatter.smooth(x=war_Data$MinTemp, y=war_Data$MaxTemp, main="MinTemp ~ MaxTemp", col = '#CCCCCC')
-
-
-
 ```
 
 
 ```{r}
 #checking for outliers using a box plot
-
 par(mfrow=c(1, 2))  # divide graph area in 2 columns
-
 boxplot(war_Data$MinTemp, main="MinTemp", sub=paste("Outlier rows: ", boxplot.stats(cars$speed)$out))  # box plot for 'MinTemp'
-
 boxplot(war_Data$MaxTemp, main="MaxTemp", sub=paste("Outlier rows: ", boxplot.stats(cars$dist)$out))  # box plot for 'MaxTemp'
-
 ```
 
 ```{r}
-
 #checking if response variable is close to normal using density plot
-
 par(mfrow=c(1, 2))  # divide graph area in 2 columns
-
 plot(density(war_Data$MinTemp), main="Density Plot: MinTemp", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(war_Data$MinTemp), 2)))  # density plot for 'MinTemp'
-
 polygon(density(war_Data$MinTemp), col="red")
-
 plot(density(war_Data$MaxTemp), main="Density Plot: MaxTemp", ylab="Frequency", sub=paste("Skewness:", round(e1071::skewness(war_Data$MaxTemp), 2)))  # density plot for 'MaxTemp'
-
 polygon(density(war_Data$MaxTemp), col="red")
-
 ```
 
 
 ```{r}
 #correlation
-
 cor(war_Data$MinTemp, war_Data$MaxTemp)
-
 ```
 We see that there's a strong positive relationship between MinTemp and MaxTemp (close to 1).
 
 ```{r}
-
 #create training and test data 
 set.seed(47)
 trainingIndex <- sample(1:nrow(war_Data), 0.8*nrow(war_Data)) #row indices for training
 trainData <- war_Data[trainingIndex, ] #training data
 testData <- war_Data[-trainingIndex, ] #test data
-
 #build model on training data
 linMod <- lm(MaxTemp ~ MinTemp, data=trainData)
 prediction <- predict(linMod, testData) #predict temp
-
 actual<- testData$MaxTemp
-
 #test data RMSE
 sqrt(mean(prediction-actual)^2)
-
 #fit a model to the training data set
 linMod2 <- lm(MaxTemp ~ MinTemp, data=trainData)
-
 #predict in-sample
 prediction2 <- predict(linMod2, trainData)
-
 #get RMSE for train data
 actual2 <- trainData$MaxTemp
 sqrt(mean(prediction2-actual2)^2)
-
-
 summary(linMod)
-
 ```
 We see model and predictor p value are less than 0.05 so the model is statistically significant. 
 
@@ -108,16 +83,11 @@ Now calculate prediction accuracy and error rates:
 Look at correlation between actual and predicted values. 
 
 ```{r}
-
 actual_pred <- data.frame(cbind(actual=testData$MaxTemp, predict=prediction)) #make precited and actual data frame
 correlation_Acc <- cor(actual_pred)
 #strong positive relationship between actual and predicted values
 correlation_Acc 
-
 DMwR::regr.eval(actual_pred$actual,actual_pred$predict)
-
-
-
 ```
 
 
@@ -125,12 +95,8 @@ Poisson Regression:
 
 Looking at relationship between temperature and number of bikes.
 ```{r}
-
 bikes_Data <- readr::read_csv("bikes.csv")
-
 bikes_Data<-as.data.frame(bikes_Data)
-
-
 ```
 Will use mean temperature (high - low/2) to predict volume of bikes per day. First find class of each variable and if there are any missing variables. Then will plot to see the relationship between number of bikes and mean temperature.
 
@@ -143,10 +109,8 @@ is.numeric(bikes_Data[,'Low Temp (°F)'])
 is.numeric(bikes_Data[,'Total'])
 print("Integers?")
 all.equal(bikes_Data[,'Total'], as.integer(bikes_Data[,'Total'])) == T
-
 ```
 ```{r}
-
 #create "Mean temperature".
 bikes_Data$Mean_Temperature<-(bikes_Data[,'High Temp (°F)']+bikes_Data[,'Low Temp (°F)'])/2
 #Poisson plot
@@ -154,24 +118,16 @@ ggplot(bikes_Data, aes(x = Mean_Temperature, y = Total)) +
     geom_point() + 
     geom_smooth(method = "glm", #plot poisson regression
     method.args = list(family = "poisson"))
-
-
-
 ```
 ```{r eval = FALSE}
-
 bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, poisson)
-
 cov.model <- vcovHC(bikesModel, type = "HC0")
 std.error <- sqrt(diag(cov.model))
 r.est <- cbind(Estimate = coef(bikesModel), "Robust SE" = std.error, "Pr(>|z|)" = 2 * pnorm(abs(coef(bikesModel)/std.error), lower.tail = FALSE),
 LL = coef(bikesModel) - 1.96 * std.error, 
 UL = coef(bikesModel) + 1.96 * std.error)
-
 r.est
-
 summary(bikesModel)
-
 ```
 Median is 0, deviance residuals are normally distributed. Coeffeicient for Total is close to 0. Residual deviance provides a goodness of fit test for the overall model. Residual deviance is the difference beween the deviance of the current model and the max deviance of the ideal model where the predicted values are the same as those observed. If the residual difference is small enough, the goodness of fit test will not be significant, indicating that the model fits the data. We conclude that the model fits well because the goodness of fit chi-squared test is not statistically significant. If it was, it would indicate that the data did not fit the model well.
 
@@ -184,100 +140,61 @@ Residual deviance is slightly higher than the degrees of freedom, which means we
 Aim to refit the model using quasi Poisson errors (see if this will help). Over dispersion is an issue if the residual variance is larger than the conditional mean. The quasi-poisson model will fit an extra dispersion paramater to account for the extra variance.
 
 ```{r}
-
 quasi_Model <- bikesModel <- glm(bikes_Data$Mean_Temperature ~ bikes_Data$Total, quasipoisson)
-
 pchisq(quasi_Model$deviance, df=quasi_Model$df.residual, lower.tail = FALSE)
-
 summary(quasi_Model)
-
-
 ```
 We see the dispersion paramater is slightly higher. This paramater tells us how many times larger the variance is than the mean. In this case, the difference between the residual and null deviance is the same as the original model and the dispersion paramater is higher, so the original Poisson model was better.
 
 ```{r}
-
 set.seed(35)
-
 inTrain <- caret::createDataPartition(y=bikes_Data$Total, p=.8, list=FALSE)
 BR.train <- bikes_Data[inTrain,]
 BR.test <- bikes_Data[-inTrain,]
-
-
 #build model on training data
 #in sample accuracy
 #need to convert log odds to a probability
 poisMod <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
 poisPrediction <- predict(poisMod, BR.train) #predict total number of bikes
 poisPred <- gtools::inv.logit(poisPrediction)
-
 predictionProbs <- data.frame(prob.poisson = poisPred)
-
 mean(predictionProbs[,1])
-
-
 #out of sample performance (on test data)
-
-
 poisModOOS <- glm(Mean_Temperature ~ Total, data = BR.train, family = poisson)
 poisPredictionOOS <- predict(poisModOOS, BR.test) #predict total number of bikes
 poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
-
 predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
-
 mean(predictionProbsOOS[,1])
-
-
 pchisq(poisModOOS$deviance, df=poisModOOS$df.residual, lower.tail = FALSE)
-
-
-
-
-
 ```
 P-value of 0.0899 suggests that a residual deviance as large or larger than what we observed under the model in poisson model is highly likely. Suggests that the model is of adequate fit, since the chi-squared test was not statistically significant.
 
 Looking at Precipitation: 
 
 ```{r}
-
 set.seed(33)
-
 #Look at precipatation
 bikes_Data[,"Precipitation"]<-as.numeric(bikes_Data[,"Precipitation"]) #get rid of n/a's in dataset
 ggplot(bikes_Data, aes(x = Precipitation, y = Total)) + 
     geom_point() + 
     geom_smooth(method = "glm", #plot regression
     method.args = list(family = "poisson")) 
-
 #build model on training data
 #in sample accuracy
 #need to convert log odds to a probability
-poisMod <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
-poisPrediction <- predict(poisMod, BR.train) #predict total number of bikes
-poisPred <- gtools::inv.logit(poisPrediction)
-
-predictionProbs <- data.frame(prob.poisson = poisPred)
-
-mean(predictionProbs[,1])
-
+#poisModel <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
+#poisPrediction <- predict(poisModel, BR.train) #predict total number of bikes
+#poisPred <- gtools::inv.logit(poisPrediction)
+#predictionProbs <- data.frame(prob.poisson = poisPred)
+#mean(predictionProbs[,1])
 #out of sample performance (on test data)
-
-poisModOOS <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
-poisPredictionOOS <- predict(poisModOOS, BR.test) #predict total number of bikes
-poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
-
-predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
-
-mean(predictionProbsOOS[,1])
-
-
-
+#poisModOOS <- glm(Precipitation ~ Total, data = BR.train, family = poisson)
+#poisPredictionOOS <- predict(poisModOOS, BR.test) #predict total number of bikes
+#poisPredOOS <- gtools::inv.logit(poisPredictionOOS)
+#predictionProbsOOS <- data.frame(prob.poissonOOS = poisPredOOS)
+#mean(predictionProbsOOS[,1])
 ```
-We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes (not a very good model, however).
-
-
-
+We see that a higher mean temperature means more bikes while a higher level of preciptation means a lower amount of bikes (not a very good model, however as the data doesn't fit a pattern well).
 
 
 
